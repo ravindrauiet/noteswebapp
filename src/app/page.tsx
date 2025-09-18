@@ -1,103 +1,371 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { 
+  Menu, 
+  Search, 
+  RefreshCw, 
+  List, 
+  Settings, 
+  Grid3X3, 
+  User,
+  Lightbulb,
+  Bell,
+  Pencil,
+  Archive,
+  Trash2,
+  Plus,
+  CheckSquare,
+  Palette,
+  Image as ImageIcon,
+  Sun,
+  Moon,
+  Pin,
+  MoreVertical
+} from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
+
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  source?: string;
+  isPinned?: boolean;
+  color?: 'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple';
+  createdAt: Date;
+}
+
+const mockNotes: Note[] = [
+  {
+    id: '1',
+    title: 'Build Details ...',
+    content: 'our first build create a build for your app with EAS B',
+    source: 'expo.dev',
+    color: 'yellow',
+    isPinned: true,
+    createdAt: new Date('2024-01-15')
+  },
+  {
+    id: '2',
+    title: 'Diffbot | The ...',
+    content: 'Diffbot Knowledge Graph, AI and Crawling Search & extract clean, data on the web faster, https://www.diffbot.com',
+    source: 'www.diffbot.com',
+    color: 'pink',
+    createdAt: new Date('2024-01-14')
+  },
+  {
+    id: '3',
+    title: 'Create your fi...',
+    content: 'Create your first React Native app with Expo',
+    source: 'docs.expo.dev',
+    color: 'blue',
+    isPinned: true,
+    createdAt: new Date('2024-01-13')
+  },
+  {
+    id: '4',
+    title: 'Web Scraping...',
+    content: 'Learn web scraping techniques and tools',
+    source: 'www.octoparse.com',
+    color: 'green',
+    createdAt: new Date('2024-01-12')
+  },
+  {
+    id: '5',
+    title: 'Apify: Full-sta...',
+    content: 'Apify: Full-stack platform for web scraping and automation',
+    source: 'apify.com',
+    color: 'orange',
+    createdAt: new Date('2024-01-11')
+  },
+  {
+    id: '6',
+    title: 'Meeting Notes',
+    content: 'Discuss project timeline and deliverables for Q1',
+    color: 'purple',
+    createdAt: new Date('2024-01-10')
+  }
+];
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { theme, toggleTheme } = useTheme();
+  const [notes, setNotes] = useState<Note[]>(mockNotes);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [newNoteTitle, setNewNoteTitle] = useState('');
+  const [newNoteContent, setNewNoteContent] = useState('');
+  const [isCreatingNote, setIsCreatingNote] = useState(false);
+  const [selectedColor, setSelectedColor] = useState<'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple'>('yellow');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const filteredNotes = notes.filter(note => 
+    note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    note.content.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const pinnedNotes = filteredNotes.filter(note => note.isPinned);
+  const unpinnedNotes = filteredNotes.filter(note => !note.isPinned);
+
+  const handleCreateNote = () => {
+    if (newNoteTitle.trim() || newNoteContent.trim()) {
+      const newNote: Note = {
+        id: Date.now().toString(),
+        title: newNoteTitle,
+        content: newNoteContent,
+        color: selectedColor,
+        createdAt: new Date()
+      };
+      setNotes([newNote, ...notes]);
+      setNewNoteTitle('');
+      setNewNoteContent('');
+      setIsCreatingNote(false);
+    }
+  };
+
+  const togglePin = (noteId: string) => {
+    setNotes(notes.map(note => 
+      note.id === noteId ? { ...note, isPinned: !note.isPinned } : note
+    ));
+  };
+
+  const changeNoteColor = (noteId: string, color: Note['color']) => {
+    setNotes(notes.map(note => 
+      note.id === noteId ? { ...note, color } : note
+    ));
+  };
+
+  const deleteNote = (noteId: string) => {
+    setNotes(notes.filter(note => note.id !== noteId));
+  };
+
+  return (
+    <div className="min-h-screen theme-bg-primary theme-text-primary">
+      {/* Header */}
+      <header className="flex items-center justify-between p-4 border-b theme-border theme-shadow">
+        <div className="flex items-center space-x-4">
+          <Menu className="h-6 w-6 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+              <Lightbulb className="h-5 w-5 text-gray-900" />
+            </div>
+            <span className="text-xl font-medium">Keep</span>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        
+        <div className="flex-1 max-w-2xl mx-8">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 theme-text-tertiary" />
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full theme-bg-secondary theme-border rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 theme-text-primary placeholder-theme-text-tertiary"
+            />
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full hover:theme-bg-tertiary transition-colors"
+          >
+            {theme === 'light' ? (
+              <Moon className="h-5 w-5 theme-text-tertiary" />
+            ) : (
+              <Sun className="h-5 w-5 theme-text-tertiary" />
+            )}
+          </button>
+          <RefreshCw className="h-6 w-6 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
+          <List className="h-6 w-6 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
+          <Settings className="h-6 w-6 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
+          <Grid3X3 className="h-6 w-6 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
+          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+            <User className="h-5 w-5 text-white" />
+          </div>
+        </div>
+      </header>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-64 theme-bg-secondary min-h-screen p-4 border-r theme-border">
+          <nav className="space-y-2">
+            <div className="flex items-center space-x-3 p-2 rounded-lg bg-yellow-400 text-gray-900">
+              <Lightbulb className="h-5 w-5" />
+              <span className="font-medium">Notes</span>
+            </div>
+            <div className="flex items-center space-x-3 p-2 rounded-lg hover:theme-bg-tertiary cursor-pointer">
+              <Bell className="h-5 w-5 theme-text-tertiary" />
+              <span className="theme-text-secondary">Reminders</span>
+            </div>
+            <div className="flex items-center space-x-3 p-2 rounded-lg hover:theme-bg-tertiary cursor-pointer">
+              <Pencil className="h-5 w-5 theme-text-tertiary" />
+              <span className="theme-text-secondary">Edit labels</span>
+            </div>
+            <div className="flex items-center space-x-3 p-2 rounded-lg hover:theme-bg-tertiary cursor-pointer">
+              <Archive className="h-5 w-5 theme-text-tertiary" />
+              <span className="theme-text-secondary">Archive</span>
+            </div>
+            <div className="flex items-center space-x-3 p-2 rounded-lg hover:theme-bg-tertiary cursor-pointer">
+              <Trash2 className="h-5 w-5 theme-text-tertiary" />
+              <span className="theme-text-secondary">Trash</span>
+            </div>
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 p-6">
+          {/* Note Creation */}
+          <div className="mb-6">
+            <div className="theme-bg-secondary rounded-lg p-4 theme-border theme-shadow">
+              <div className="flex items-center space-x-2 mb-3">
+                <input
+                  type="text"
+                  placeholder="Take a note..."
+                  value={isCreatingNote ? newNoteTitle : ''}
+                  onChange={(e) => {
+                    setNewNoteTitle(e.target.value);
+                    if (!isCreatingNote) setIsCreatingNote(true);
+                  }}
+                  onFocus={() => setIsCreatingNote(true)}
+                  className="flex-1 bg-transparent theme-text-primary placeholder-theme-text-tertiary focus:outline-none"
+                />
+                <div className="flex space-x-2">
+                  <CheckSquare className="h-5 w-5 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
+                  <Palette className="h-5 w-5 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
+                  <ImageIcon className="h-5 w-5 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
+                </div>
+              </div>
+              {isCreatingNote && (
+                <div className="space-y-3">
+                  <textarea
+                    placeholder="Add a note..."
+                    value={newNoteContent}
+                    onChange={(e) => setNewNoteContent(e.target.value)}
+                    className="w-full bg-transparent theme-text-primary placeholder-theme-text-tertiary focus:outline-none resize-none"
+                    rows={3}
+                  />
+                  <div className="flex items-center justify-between">
+                    <div className="flex space-x-1">
+                      {(['yellow', 'pink', 'blue', 'green', 'orange', 'purple'] as const).map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setSelectedColor(color)}
+                          className={`w-6 h-6 rounded-full border-2 ${
+                            selectedColor === color ? 'border-gray-600' : 'border-gray-300'
+                          } sticky-note-${color}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          setIsCreatingNote(false);
+                          setNewNoteTitle('');
+                          setNewNoteContent('');
+                        }}
+                        className="px-4 py-2 theme-text-tertiary hover:theme-text-primary"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleCreateNote}
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Pinned Notes */}
+          {pinnedNotes.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-sm font-medium theme-text-secondary mb-4">PINNED</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {pinnedNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className={`sticky-note sticky-note-${note.color || 'yellow'} p-4 rounded-lg cursor-pointer group`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-medium text-gray-800 line-clamp-2 flex-1">{note.title}</h3>
+                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => togglePin(note.id)}
+                          className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
+                        >
+                          <Pin className="h-4 w-4 text-gray-600" />
+                        </button>
+                        <button
+                          onClick={() => deleteNote(note.id)}
+                          className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
+                        >
+                          <Trash2 className="h-4 w-4 text-gray-600" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-gray-700 text-sm mb-3 line-clamp-3">{note.content}</p>
+                    {note.source && (
+                      <p className="text-xs text-gray-600">{note.source}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Regular Notes */}
+          {unpinnedNotes.length > 0 && (
+            <div>
+              {pinnedNotes.length > 0 && (
+                <h2 className="text-sm font-medium theme-text-secondary mb-4">OTHERS</h2>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {unpinnedNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className={`sticky-note sticky-note-${note.color || 'yellow'} p-4 rounded-lg cursor-pointer group`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-medium text-gray-800 line-clamp-2 flex-1">{note.title}</h3>
+                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => togglePin(note.id)}
+                          className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
+                        >
+                          <Pin className="h-4 w-4 text-gray-600" />
+                        </button>
+                        <button
+                          onClick={() => deleteNote(note.id)}
+                          className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
+                        >
+                          <Trash2 className="h-4 w-4 text-gray-600" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-gray-700 text-sm mb-3 line-clamp-3">{note.content}</p>
+                    {note.source && (
+                      <p className="text-xs text-gray-600">{note.source}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {filteredNotes.length === 0 && (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
+                <Lightbulb className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium theme-text-secondary mb-2">No notes yet</h3>
+              <p className="theme-text-tertiary">Create your first note to get started!</p>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
