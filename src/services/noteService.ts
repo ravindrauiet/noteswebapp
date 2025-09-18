@@ -56,11 +56,26 @@ class NoteService {
   async createNote(noteData: CreateNoteData): Promise<Note> {
     try {
       const now = new Date();
-      const docRef = await addDoc(collection(db, this.collectionName), {
+      const firestoreData: any = {
         ...noteData,
         createdAt: Timestamp.fromDate(now),
         updatedAt: Timestamp.fromDate(now),
-      });
+      };
+
+      // Convert reminderDate to Timestamp if it exists
+      if (noteData.reminderDate) {
+        firestoreData.reminderDate = Timestamp.fromDate(noteData.reminderDate);
+      }
+
+      // Ensure all boolean fields have default values
+      firestoreData.isPinned = noteData.isPinned || false;
+      firestoreData.isArchived = false;
+      firestoreData.isDeleted = false;
+      firestoreData.labels = noteData.labels || [];
+
+      console.log('Creating note with data:', firestoreData);
+
+      const docRef = await addDoc(collection(db, this.collectionName), firestoreData);
 
       return {
         id: docRef.id,
@@ -94,6 +109,10 @@ class NoteService {
           source: data.source,
           isPinned: data.isPinned || false,
           color: data.color || 'yellow',
+          labels: data.labels || [],
+          isArchived: data.isArchived || false,
+          isDeleted: data.isDeleted || false,
+          reminderDate: data.reminderDate?.toDate(),
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date(),
         });
@@ -110,10 +129,22 @@ class NoteService {
   async updateNote(noteId: string, updateData: UpdateNoteData): Promise<void> {
     try {
       const noteRef = doc(db, this.collectionName, noteId);
-      await updateDoc(noteRef, {
+      const firestoreData: any = {
         ...updateData,
         updatedAt: Timestamp.fromDate(new Date()),
-      });
+      };
+
+      // Convert reminderDate to Timestamp if it exists
+      if (updateData.reminderDate) {
+        firestoreData.reminderDate = Timestamp.fromDate(updateData.reminderDate);
+      } else if (updateData.reminderDate === undefined) {
+        // If reminderDate is explicitly set to undefined, remove it
+        firestoreData.reminderDate = null;
+      }
+
+      console.log('Updating note with data:', firestoreData);
+
+      await updateDoc(noteRef, firestoreData);
     } catch (error) {
       console.error('Error updating note:', error);
       throw new Error('Failed to update note');

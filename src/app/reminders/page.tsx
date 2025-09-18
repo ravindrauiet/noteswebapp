@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Bell, 
   Clock, 
@@ -33,26 +33,41 @@ export default function RemindersPage() {
   const [reminderNotes, setReminderNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadReminderNotes();
-  }, []);
-
-  const loadReminderNotes = async () => {
+  const loadReminderNotes = useCallback(async () => {
     try {
       setIsLoading(true);
+      console.log('Loading reminder notes...');
       const notes = await getNotesWithReminders();
+      console.log('Loaded reminder notes:', notes);
       setReminderNotes(notes);
     } catch (error) {
       console.error('Error loading reminder notes:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getNotesWithReminders]);
+
+  useEffect(() => {
+    loadReminderNotes();
+  }, [loadReminderNotes]);
+
+  // Refresh data when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadReminderNotes();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [loadReminderNotes]);
 
   const handleRemoveReminder = async (noteId: string) => {
     try {
       await removeReminder(noteId);
-      setReminderNotes(prev => prev.filter(note => note.id !== noteId));
+      // Refresh the reminders list
+      await loadReminderNotes();
     } catch (error) {
       console.error('Error removing reminder:', error);
     }
@@ -136,6 +151,7 @@ export default function RemindersPage() {
             onClick={loadReminderNotes}
             disabled={loading}
             className="p-2 rounded-full hover:theme-bg-tertiary transition-colors disabled:opacity-50"
+            title="Refresh reminders"
           >
             {loading ? (
               <Loader2 className="h-5 w-5 theme-text-tertiary animate-spin" />
@@ -154,6 +170,18 @@ export default function RemindersPage() {
 
         {/* Main Content */}
         <main className="flex-1 p-6">
+          {/* Debug Info */}
+          <div className="mb-4 p-3 bg-gray-100 rounded text-sm">
+            <p>Debug: Found {reminderNotes.length} reminder notes</p>
+            <p>Loading: {isLoading ? 'Yes' : 'No'}</p>
+            <button 
+              onClick={loadReminderNotes}
+              className="mt-2 px-2 py-1 bg-blue-500 text-white rounded text-xs"
+            >
+              Refresh Data
+            </button>
+          </div>
+
         {reminderNotes.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">

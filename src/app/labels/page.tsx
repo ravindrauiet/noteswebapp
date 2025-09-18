@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Pencil, 
   Plus, 
@@ -23,8 +23,7 @@ export default function LabelsPage() {
   const { 
     getAllLabels, 
     loading, 
-    error, 
-    refreshNotes 
+    error
   } = useNotes();
   
   const [labels, setLabels] = useState<string[]>([]);
@@ -33,11 +32,7 @@ export default function LabelsPage() {
   const [newLabelName, setNewLabelName] = useState('');
   const [isAddingLabel, setIsAddingLabel] = useState(false);
 
-  useEffect(() => {
-    loadLabels();
-  }, []);
-
-  const loadLabels = async () => {
+  const loadLabels = useCallback(async () => {
     try {
       setIsLoading(true);
       const fetchedLabels = await getAllLabels();
@@ -47,7 +42,11 @@ export default function LabelsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getAllLabels]);
+
+  useEffect(() => {
+    loadLabels();
+  }, [loadLabels]);
 
   const handleAddLabel = async () => {
     if (!newLabelName.trim()) return;

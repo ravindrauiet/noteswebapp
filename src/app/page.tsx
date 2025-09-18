@@ -23,11 +23,13 @@ import {
   Pin,
   MoreVertical,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNotes } from '../contexts/NoteContext';
 import Navigation from '../components/Navigation';
+import ReminderDebug from '../components/ReminderDebug';
 
 interface Note {
   id: string;
@@ -53,8 +55,14 @@ export default function Home() {
     changeColor, 
     searchNotes, 
     refreshNotes,
+    refreshAllData,
     softDeleteNote,
-    archiveNote
+    archiveNote,
+    setReminder,
+    removeReminder,
+    addLabel,
+    removeLabel,
+    getAllLabels
   } = useNotes();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,6 +71,11 @@ export default function Home() {
   const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [selectedColor, setSelectedColor] = useState<'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple'>('yellow');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showReminderPicker, setShowReminderPicker] = useState(false);
+  const [reminderDate, setReminderDate] = useState('');
+  const [showLabelPicker, setShowLabelPicker] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   const filteredNotes = searchQuery ? searchNotes(searchQuery) : notes.filter(note => !note.isArchived && !note.isDeleted);
 
@@ -73,13 +86,27 @@ export default function Home() {
     if (newNoteTitle.trim() || newNoteContent.trim()) {
       try {
         setIsSubmitting(true);
-        await createNote({
+        const noteData: any = {
           title: newNoteTitle,
           content: newNoteContent,
           color: selectedColor,
-        });
+        };
+        
+        if (reminderDate) {
+          noteData.reminderDate = new Date(reminderDate);
+        }
+        
+        if (selectedLabels.length > 0) {
+          noteData.labels = selectedLabels;
+        }
+        
+        await createNote(noteData);
         setNewNoteTitle('');
         setNewNoteContent('');
+        setReminderDate('');
+        setShowReminderPicker(false);
+        setSelectedLabels([]);
+        setShowLabelPicker(false);
         setIsCreatingNote(false);
       } catch (error) {
         console.error('Error creating note:', error);
@@ -116,6 +143,8 @@ export default function Home() {
   const handleArchiveNote = async (noteId: string) => {
     try {
       await archiveNote(noteId);
+      // Refresh all data to update other pages
+      await refreshAllData();
     } catch (error) {
       console.error('Error archiving note:', error);
     }
@@ -123,6 +152,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen theme-bg-primary theme-text-primary">
+      {/* Debug Component */}
+      <div className="px-4 pt-4">
+        <ReminderDebug />
+      </div>
+
       {/* Error Banner */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mx-4 mt-4 flex items-center">
@@ -217,6 +251,20 @@ export default function Home() {
                   className="flex-1 bg-transparent theme-text-primary placeholder-theme-text-tertiary focus:outline-none"
                 />
                 <div className="flex space-x-2">
+                  <button
+                    onClick={() => setShowReminderPicker(!showReminderPicker)}
+                    className="p-1 hover:theme-bg-tertiary rounded"
+                    title="Set reminder"
+                  >
+                    <Clock className="h-5 w-5 theme-text-tertiary hover:theme-text-primary" />
+                  </button>
+                  <button
+                    onClick={() => setShowLabelPicker(!showLabelPicker)}
+                    className="p-1 hover:theme-bg-tertiary rounded"
+                    title="Add labels"
+                  >
+                    <Pencil className="h-5 w-5 theme-text-tertiary hover:theme-text-primary" />
+                  </button>
                   <CheckSquare className="h-5 w-5 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
                   <Palette className="h-5 w-5 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
                   <ImageIcon className="h-5 w-5 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
@@ -231,6 +279,75 @@ export default function Home() {
                     className="w-full bg-transparent theme-text-primary placeholder-theme-text-tertiary focus:outline-none resize-none"
                     rows={3}
                   />
+                  {showReminderPicker && (
+                    <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
+                      <Clock className="h-4 w-4 text-gray-600" />
+                      <input
+                        type="datetime-local"
+                        value={reminderDate}
+                        onChange={(e) => setReminderDate(e.target.value)}
+                        className="flex-1 bg-transparent text-sm focus:outline-none"
+                        min={new Date().toISOString().slice(0, 16)}
+                      />
+                      <button
+                        onClick={() => setReminderDate('')}
+                        className="text-gray-500 hover:text-gray-700 text-sm"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                  {showLabelPicker && (
+                    <div className="p-2 bg-gray-50 rounded-lg space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Pencil className="h-4 w-4 text-gray-600" />
+                        <input
+                          type="text"
+                          value={newLabel}
+                          onChange={(e) => setNewLabel(e.target.value)}
+                          placeholder="Add a label"
+                          className="flex-1 bg-transparent text-sm focus:outline-none"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && newLabel.trim()) {
+                              if (!selectedLabels.includes(newLabel.trim())) {
+                                setSelectedLabels([...selectedLabels, newLabel.trim()]);
+                              }
+                              setNewLabel('');
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            if (newLabel.trim() && !selectedLabels.includes(newLabel.trim())) {
+                              setSelectedLabels([...selectedLabels, newLabel.trim()]);
+                              setNewLabel('');
+                            }
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {selectedLabels.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {selectedLabels.map((label, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                            >
+                              <span>{label}</span>
+                              <button
+                                onClick={() => setSelectedLabels(selectedLabels.filter((_, i) => i !== index))}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <div className="flex space-x-1">
                       {(['yellow', 'pink', 'blue', 'green', 'orange', 'purple'] as const).map((color) => (
@@ -295,6 +412,32 @@ export default function Home() {
                         >
                           <Pin className="h-4 w-4 text-gray-600" />
                         </button>
+                        {note.reminderDate ? (
+                          <button
+                            onClick={async () => {
+                              await removeReminder(note.id);
+                              await refreshAllData();
+                            }}
+                            className="p-1 hover:bg-red-500 hover:bg-opacity-20 rounded"
+                            title="Remove reminder"
+                          >
+                            <Clock className="h-4 w-4 text-blue-600 hover:text-red-600" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              const newDate = prompt('Set reminder date and time:', new Date().toISOString().slice(0, 16));
+                              if (newDate) {
+                                await setReminder(note.id, new Date(newDate));
+                                await refreshAllData();
+                              }
+                            }}
+                            className="p-1 hover:bg-blue-500 hover:bg-opacity-20 rounded"
+                            title="Set reminder"
+                          >
+                            <Clock className="h-4 w-4 text-gray-600 hover:text-blue-600" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleArchiveNote(note.id)}
                           className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
@@ -312,6 +455,24 @@ export default function Home() {
                       </div>
                     </div>
                     <p className="text-gray-700 text-sm mb-3 line-clamp-3">{note.content}</p>
+                    {note.reminderDate && (
+                      <div className="flex items-center space-x-1 text-xs text-blue-600 mb-2">
+                        <Clock className="h-3 w-3" />
+                        <span>{new Date(note.reminderDate).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {note.labels && note.labels.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {note.labels.map((label, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {note.source && (
                       <p className="text-xs text-gray-600">{note.source}</p>
                     )}
@@ -343,6 +504,32 @@ export default function Home() {
                         >
                           <Pin className="h-4 w-4 text-gray-600" />
                         </button>
+                        {note.reminderDate ? (
+                          <button
+                            onClick={async () => {
+                              await removeReminder(note.id);
+                              await refreshAllData();
+                            }}
+                            className="p-1 hover:bg-red-500 hover:bg-opacity-20 rounded"
+                            title="Remove reminder"
+                          >
+                            <Clock className="h-4 w-4 text-blue-600 hover:text-red-600" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              const newDate = prompt('Set reminder date and time:', new Date().toISOString().slice(0, 16));
+                              if (newDate) {
+                                await setReminder(note.id, new Date(newDate));
+                                await refreshAllData();
+                              }
+                            }}
+                            className="p-1 hover:bg-blue-500 hover:bg-opacity-20 rounded"
+                            title="Set reminder"
+                          >
+                            <Clock className="h-4 w-4 text-gray-600 hover:text-blue-600" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleArchiveNote(note.id)}
                           className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
@@ -360,6 +547,24 @@ export default function Home() {
                       </div>
                     </div>
                     <p className="text-gray-700 text-sm mb-3 line-clamp-3">{note.content}</p>
+                    {note.reminderDate && (
+                      <div className="flex items-center space-x-1 text-xs text-blue-600 mb-2">
+                        <Clock className="h-3 w-3" />
+                        <span>{new Date(note.reminderDate).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {note.labels && note.labels.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {note.labels.map((label, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {note.source && (
                       <p className="text-xs text-gray-600">{note.source}</p>
                     )}

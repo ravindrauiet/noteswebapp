@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Archive, 
   Trash2, 
-  Pin, 
   MoreVertical,
   Loader2,
   AlertCircle,
@@ -25,18 +24,13 @@ export default function ArchivesPage() {
     unarchiveNote, 
     softDeleteNote, 
     loading, 
-    error, 
-    refreshNotes 
+    error
   } = useNotes();
   
   const [archivedNotes, setArchivedNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadArchivedNotes();
-  }, []);
-
-  const loadArchivedNotes = async () => {
+  const loadArchivedNotes = useCallback(async () => {
     try {
       setIsLoading(true);
       const notes = await getNotesByStatus('archived');
@@ -46,12 +40,29 @@ export default function ArchivesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getNotesByStatus]);
+
+  useEffect(() => {
+    loadArchivedNotes();
+  }, [loadArchivedNotes]);
+
+  // Refresh data when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadArchivedNotes();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [loadArchivedNotes]);
 
   const handleUnarchiveNote = async (noteId: string) => {
     try {
       await unarchiveNote(noteId);
-      setArchivedNotes(prev => prev.filter(note => note.id !== noteId));
+      // Refresh the archived notes list
+      await loadArchivedNotes();
     } catch (error) {
       console.error('Error unarchiving note:', error);
     }
@@ -60,7 +71,8 @@ export default function ArchivesPage() {
   const handleDeleteNote = async (noteId: string) => {
     try {
       await softDeleteNote(noteId);
-      setArchivedNotes(prev => prev.filter(note => note.id !== noteId));
+      // Refresh the archived notes list
+      await loadArchivedNotes();
     } catch (error) {
       console.error('Error deleting note:', error);
     }
@@ -121,6 +133,7 @@ export default function ArchivesPage() {
             onClick={loadArchivedNotes}
             disabled={loading}
             className="p-2 rounded-full hover:theme-bg-tertiary transition-colors disabled:opacity-50"
+            title="Refresh archived notes"
           >
             {loading ? (
               <Loader2 className="h-5 w-5 theme-text-tertiary animate-spin" />

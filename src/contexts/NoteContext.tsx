@@ -14,6 +14,7 @@ interface NoteContextType {
   changeColor: (noteId: string, color: Note['color']) => Promise<void>;
   searchNotes: (query: string) => Note[];
   refreshNotes: () => Promise<void>;
+  refreshAllData: () => Promise<void>;
   // New functionality
   archiveNote: (noteId: string) => Promise<void>;
   unarchiveNote: (noteId: string) => Promise<void>;
@@ -157,6 +158,11 @@ export const NoteProvider: React.FC<NoteProviderProps> = ({ children }) => {
   };
 
   const refreshNotes = async () => {
+    await loadNotes();
+  };
+
+  // Global refresh function that can be called from any page
+  const refreshAllData = async () => {
     await loadNotes();
   };
 
@@ -369,6 +375,7 @@ export const NoteProvider: React.FC<NoteProviderProps> = ({ children }) => {
     changeColor,
     searchNotes,
     refreshNotes,
+    refreshAllData,
     archiveNote,
     unarchiveNote,
     softDeleteNote,

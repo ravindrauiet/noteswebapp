@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Trash2, 
   RotateCcw, 
@@ -32,11 +32,7 @@ export default function TrashPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadDeletedNotes();
-  }, []);
-
-  const loadDeletedNotes = async () => {
+  const loadDeletedNotes = useCallback(async () => {
     try {
       setIsLoading(true);
       const notes = await getNotesByStatus('deleted');
@@ -46,7 +42,11 @@ export default function TrashPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getNotesByStatus]);
+
+  useEffect(() => {
+    loadDeletedNotes();
+  }, [loadDeletedNotes]);
 
   const handleRestoreNote = async (noteId: string) => {
     try {
