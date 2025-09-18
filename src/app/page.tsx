@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNotes } from '../contexts/NoteContext';
+import Navigation from '../components/Navigation';
 
 interface Note {
   id: string;
@@ -51,7 +52,9 @@ export default function Home() {
     togglePin, 
     changeColor, 
     searchNotes, 
-    refreshNotes 
+    refreshNotes,
+    softDeleteNote,
+    archiveNote
   } = useNotes();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,7 +64,7 @@ export default function Home() {
   const [selectedColor, setSelectedColor] = useState<'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple'>('yellow');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filteredNotes = searchQuery ? searchNotes(searchQuery) : notes;
+  const filteredNotes = searchQuery ? searchNotes(searchQuery) : notes.filter(note => !note.isArchived && !note.isDeleted);
 
   const pinnedNotes = filteredNotes.filter(note => note.isPinned);
   const unpinnedNotes = filteredNotes.filter(note => !note.isPinned);
@@ -104,9 +107,17 @@ export default function Home() {
 
   const handleDeleteNote = async (noteId: string) => {
     try {
-      await deleteNote(noteId);
+      await softDeleteNote(noteId);
     } catch (error) {
       console.error('Error deleting note:', error);
+    }
+  };
+
+  const handleArchiveNote = async (noteId: string) => {
+    try {
+      await archiveNote(noteId);
+    } catch (error) {
+      console.error('Error archiving note:', error);
     }
   };
 
@@ -185,28 +196,7 @@ export default function Home() {
       <div className="flex">
         {/* Sidebar */}
         <aside className="w-64 theme-bg-secondary min-h-screen p-4 border-r theme-border">
-          <nav className="space-y-2">
-            <div className="flex items-center space-x-3 p-2 rounded-lg bg-yellow-400 text-gray-900">
-              <Lightbulb className="h-5 w-5" />
-              <span className="font-medium">Notes</span>
-            </div>
-            <div className="flex items-center space-x-3 p-2 rounded-lg hover:theme-bg-tertiary cursor-pointer">
-              <Bell className="h-5 w-5 theme-text-tertiary" />
-              <span className="theme-text-secondary">Reminders</span>
-            </div>
-            <div className="flex items-center space-x-3 p-2 rounded-lg hover:theme-bg-tertiary cursor-pointer">
-              <Pencil className="h-5 w-5 theme-text-tertiary" />
-              <span className="theme-text-secondary">Edit labels</span>
-            </div>
-            <div className="flex items-center space-x-3 p-2 rounded-lg hover:theme-bg-tertiary cursor-pointer">
-              <Archive className="h-5 w-5 theme-text-tertiary" />
-              <span className="theme-text-secondary">Archive</span>
-            </div>
-            <div className="flex items-center space-x-3 p-2 rounded-lg hover:theme-bg-tertiary cursor-pointer">
-              <Trash2 className="h-5 w-5 theme-text-tertiary" />
-              <span className="theme-text-secondary">Trash</span>
-            </div>
-          </nav>
+          <Navigation />
         </aside>
 
         {/* Main Content */}
@@ -301,14 +291,23 @@ export default function Home() {
                         <button
                           onClick={() => handleTogglePin(note.id)}
                           className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
+                          title="Pin/Unpin note"
                         >
                           <Pin className="h-4 w-4 text-gray-600" />
                         </button>
                         <button
-                          onClick={() => handleDeleteNote(note.id)}
+                          onClick={() => handleArchiveNote(note.id)}
                           className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
+                          title="Archive note"
                         >
-                          <Trash2 className="h-4 w-4 text-gray-600" />
+                          <Archive className="h-4 w-4 text-gray-600" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteNote(note.id)}
+                          className="p-1 hover:bg-red-500 hover:bg-opacity-20 rounded"
+                          title="Move to trash"
+                        >
+                          <Trash2 className="h-4 w-4 text-gray-600 hover:text-red-600" />
                         </button>
                       </div>
                     </div>
@@ -340,14 +339,23 @@ export default function Home() {
                         <button
                           onClick={() => handleTogglePin(note.id)}
                           className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
+                          title="Pin/Unpin note"
                         >
                           <Pin className="h-4 w-4 text-gray-600" />
                         </button>
                         <button
-                          onClick={() => handleDeleteNote(note.id)}
+                          onClick={() => handleArchiveNote(note.id)}
                           className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
+                          title="Archive note"
                         >
-                          <Trash2 className="h-4 w-4 text-gray-600" />
+                          <Archive className="h-4 w-4 text-gray-600" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteNote(note.id)}
+                          className="p-1 hover:bg-red-500 hover:bg-opacity-20 rounded"
+                          title="Move to trash"
+                        >
+                          <Trash2 className="h-4 w-4 text-gray-600 hover:text-red-600" />
                         </button>
                       </div>
                     </div>
