@@ -21,9 +21,12 @@ import {
   Sun,
   Moon,
   Pin,
-  MoreVertical
+  MoreVertical,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useNotes } from '../contexts/NoteContext';
 
 interface Note {
   id: string;
@@ -33,111 +36,96 @@ interface Note {
   isPinned?: boolean;
   color?: 'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple';
   createdAt: Date;
+  updatedAt: Date;
 }
-
-const mockNotes: Note[] = [
-  {
-    id: '1',
-    title: 'Build Details ...',
-    content: 'our first build create a build for your app with EAS B',
-    source: 'expo.dev',
-    color: 'yellow',
-    isPinned: true,
-    createdAt: new Date('2024-01-15')
-  },
-  {
-    id: '2',
-    title: 'Diffbot | The ...',
-    content: 'Diffbot Knowledge Graph, AI and Crawling Search & extract clean, data on the web faster, https://www.diffbot.com',
-    source: 'www.diffbot.com',
-    color: 'pink',
-    createdAt: new Date('2024-01-14')
-  },
-  {
-    id: '3',
-    title: 'Create your fi...',
-    content: 'Create your first React Native app with Expo',
-    source: 'docs.expo.dev',
-    color: 'blue',
-    isPinned: true,
-    createdAt: new Date('2024-01-13')
-  },
-  {
-    id: '4',
-    title: 'Web Scraping...',
-    content: 'Learn web scraping techniques and tools',
-    source: 'www.octoparse.com',
-    color: 'green',
-    createdAt: new Date('2024-01-12')
-  },
-  {
-    id: '5',
-    title: 'Apify: Full-sta...',
-    content: 'Apify: Full-stack platform for web scraping and automation',
-    source: 'apify.com',
-    color: 'orange',
-    createdAt: new Date('2024-01-11')
-  },
-  {
-    id: '6',
-    title: 'Meeting Notes',
-    content: 'Discuss project timeline and deliverables for Q1',
-    color: 'purple',
-    createdAt: new Date('2024-01-10')
-  }
-];
 
 export default function Home() {
   const { theme, toggleTheme } = useTheme();
-  const [notes, setNotes] = useState<Note[]>(mockNotes);
+  const { 
+    notes, 
+    loading, 
+    error, 
+    createNote, 
+    updateNote, 
+    deleteNote, 
+    togglePin, 
+    changeColor, 
+    searchNotes, 
+    refreshNotes 
+  } = useNotes();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [newNoteContent, setNewNoteContent] = useState('');
   const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [selectedColor, setSelectedColor] = useState<'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple'>('yellow');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filteredNotes = notes.filter(note => 
-    note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    note.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredNotes = searchQuery ? searchNotes(searchQuery) : notes;
 
   const pinnedNotes = filteredNotes.filter(note => note.isPinned);
   const unpinnedNotes = filteredNotes.filter(note => !note.isPinned);
 
-  const handleCreateNote = () => {
+  const handleCreateNote = async () => {
     if (newNoteTitle.trim() || newNoteContent.trim()) {
-      const newNote: Note = {
-        id: Date.now().toString(),
-        title: newNoteTitle,
-        content: newNoteContent,
-        color: selectedColor,
-        createdAt: new Date()
-      };
-      setNotes([newNote, ...notes]);
-      setNewNoteTitle('');
-      setNewNoteContent('');
-      setIsCreatingNote(false);
+      try {
+        setIsSubmitting(true);
+        await createNote({
+          title: newNoteTitle,
+          content: newNoteContent,
+          color: selectedColor,
+        });
+        setNewNoteTitle('');
+        setNewNoteContent('');
+        setIsCreatingNote(false);
+      } catch (error) {
+        console.error('Error creating note:', error);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
-  const togglePin = (noteId: string) => {
-    setNotes(notes.map(note => 
-      note.id === noteId ? { ...note, isPinned: !note.isPinned } : note
-    ));
+  const handleTogglePin = async (noteId: string) => {
+    try {
+      await togglePin(noteId);
+    } catch (error) {
+      console.error('Error toggling pin:', error);
+    }
   };
 
-  const changeNoteColor = (noteId: string, color: Note['color']) => {
-    setNotes(notes.map(note => 
-      note.id === noteId ? { ...note, color } : note
-    ));
+  const handleChangeColor = async (noteId: string, color: Note['color']) => {
+    try {
+      await changeColor(noteId, color);
+    } catch (error) {
+      console.error('Error changing color:', error);
+    }
   };
 
-  const deleteNote = (noteId: string) => {
-    setNotes(notes.filter(note => note.id !== noteId));
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await deleteNote(noteId);
+    } catch (error) {
+      console.error('Error deleting note:', error);
+    }
   };
 
   return (
     <div className="min-h-screen theme-bg-primary theme-text-primary">
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mx-4 mt-4 flex items-center">
+          <AlertCircle className="h-5 w-5 mr-2" />
+          <span className="block sm:inline">{error}</span>
+          <button
+            onClick={() => window.location.reload()}
+            className="absolute top-0 bottom-0 right-0 px-4 py-3"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between p-4 border-b theme-border theme-shadow">
         <div className="flex items-center space-x-4">
@@ -174,7 +162,17 @@ export default function Home() {
               <Sun className="h-5 w-5 theme-text-tertiary" />
             )}
           </button>
-          <RefreshCw className="h-6 w-6 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
+          <button
+            onClick={refreshNotes}
+            disabled={loading}
+            className="p-2 rounded-full hover:theme-bg-tertiary transition-colors disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 className="h-5 w-5 theme-text-tertiary animate-spin" />
+            ) : (
+              <RefreshCw className="h-5 w-5 theme-text-tertiary hover:theme-text-primary" />
+            )}
+          </button>
           <List className="h-6 w-6 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
           <Settings className="h-6 w-6 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
           <Grid3X3 className="h-6 w-6 theme-text-tertiary hover:theme-text-primary cursor-pointer" />
@@ -268,9 +266,17 @@ export default function Home() {
                       </button>
                       <button
                         onClick={handleCreateNote}
-                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white"
+                        disabled={isSubmitting}
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 rounded-lg text-white flex items-center"
                       >
-                        Save
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          'Save'
+                        )}
                       </button>
                     </div>
                   </div>
@@ -293,13 +299,13 @@ export default function Home() {
                       <h3 className="font-medium text-gray-800 line-clamp-2 flex-1">{note.title}</h3>
                       <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={() => togglePin(note.id)}
+                          onClick={() => handleTogglePin(note.id)}
                           className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
                         >
                           <Pin className="h-4 w-4 text-gray-600" />
                         </button>
                         <button
-                          onClick={() => deleteNote(note.id)}
+                          onClick={() => handleDeleteNote(note.id)}
                           className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
                         >
                           <Trash2 className="h-4 w-4 text-gray-600" />
@@ -332,13 +338,13 @@ export default function Home() {
                       <h3 className="font-medium text-gray-800 line-clamp-2 flex-1">{note.title}</h3>
                       <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={() => togglePin(note.id)}
+                          onClick={() => handleTogglePin(note.id)}
                           className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
                         >
                           <Pin className="h-4 w-4 text-gray-600" />
                         </button>
                         <button
-                          onClick={() => deleteNote(note.id)}
+                          onClick={() => handleDeleteNote(note.id)}
                           className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
                         >
                           <Trash2 className="h-4 w-4 text-gray-600" />
@@ -355,7 +361,15 @@ export default function Home() {
             </div>
           )}
 
-          {filteredNotes.length === 0 && (
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
+                <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
+              </div>
+              <h3 className="text-lg font-medium theme-text-secondary mb-2">Loading notes...</h3>
+              <p className="theme-text-tertiary">Please wait while we fetch your notes</p>
+            </div>
+          ) : filteredNotes.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
                 <Lightbulb className="h-8 w-8 text-gray-400" />
@@ -363,7 +377,7 @@ export default function Home() {
               <h3 className="text-lg font-medium theme-text-secondary mb-2">No notes yet</h3>
               <p className="theme-text-tertiary">Create your first note to get started!</p>
             </div>
-          )}
+          ) : null}
         </main>
       </div>
     </div>
