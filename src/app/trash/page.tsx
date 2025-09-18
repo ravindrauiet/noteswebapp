@@ -24,8 +24,7 @@ export default function TrashPage() {
     restoreNote, 
     permanentDeleteNote, 
     loading, 
-    error, 
-    refreshNotes 
+    error 
   } = useNotes();
   
   const [deletedNotes, setDeletedNotes] = useState<Note[]>([]);

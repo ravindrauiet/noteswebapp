@@ -4,10 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Bell, 
   Clock, 
-  Calendar, 
-  Plus, 
   Trash2, 
-  Pin, 
   MoreVertical,
   Loader2,
   AlertCircle,
@@ -26,8 +23,7 @@ export default function RemindersPage() {
     getNotesWithReminders, 
     removeReminder, 
     loading, 
-    error, 
-    refreshNotes 
+    error 
   } = useNotes();
   
   const [reminderNotes, setReminderNotes] = useState<Note[]>([]);

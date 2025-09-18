@@ -10,18 +10,15 @@ import {
   Grid3X3, 
   User,
   Lightbulb,
-  Bell,
   Pencil,
   Archive,
   Trash2,
-  Plus,
   CheckSquare,
   Palette,
   Image as ImageIcon,
   Sun,
   Moon,
   Pin,
-  MoreVertical,
   Loader2,
   AlertCircle,
   Clock
@@ -29,18 +26,7 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { useNotes } from '../contexts/NoteContext';
 import Navigation from '../components/Navigation';
-import ReminderDebug from '../components/ReminderDebug';
 
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  source?: string;
-  isPinned?: boolean;
-  color?: 'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple';
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 export default function Home() {
   const { theme, toggleTheme } = useTheme();
@@ -49,20 +35,14 @@ export default function Home() {
     loading, 
     error, 
     createNote, 
-    updateNote, 
-    deleteNote, 
     togglePin, 
-    changeColor, 
     searchNotes, 
     refreshNotes,
     refreshAllData,
     softDeleteNote,
     archiveNote,
     setReminder,
-    removeReminder,
-    addLabel,
-    removeLabel,
-    getAllLabels
+    removeReminder
   } = useNotes();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,7 +66,13 @@ export default function Home() {
     if (newNoteTitle.trim() || newNoteContent.trim()) {
       try {
         setIsSubmitting(true);
-        const noteData: any = {
+        const noteData: {
+          title: string;
+          content: string;
+          color: 'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple';
+          reminderDate?: Date;
+          labels?: string[];
+        } = {
           title: newNoteTitle,
           content: newNoteContent,
           color: selectedColor,
@@ -124,13 +110,6 @@ export default function Home() {
     }
   };
 
-  const handleChangeColor = async (noteId: string, color: Note['color']) => {
-    try {
-      await changeColor(noteId, color);
-    } catch (error) {
-      console.error('Error changing color:', error);
-    }
-  };
 
   const handleDeleteNote = async (noteId: string) => {
     try {
@@ -152,10 +131,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen theme-bg-primary theme-text-primary">
-      {/* Debug Component */}
-      <div className="px-4 pt-4">
-        <ReminderDebug />
-      </div>
 
       {/* Error Banner */}
       {error && (

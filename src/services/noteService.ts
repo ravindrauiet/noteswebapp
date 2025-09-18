@@ -6,8 +6,7 @@ import {
   doc, 
   getDocs, 
   query, 
-  orderBy, 
-  where,
+  orderBy,
   Timestamp 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -49,6 +48,20 @@ export interface UpdateNoteData {
   reminderDate?: Date;
 }
 
+interface FirestoreData {
+  title: string;
+  content: string;
+  source?: string;
+  isPinned: boolean;
+  color: string;
+  labels: string[];
+  isArchived: boolean;
+  isDeleted: boolean;
+  reminderDate?: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 class NoteService {
   private collectionName = 'notes';
 
@@ -56,22 +69,20 @@ class NoteService {
   async createNote(noteData: CreateNoteData): Promise<Note> {
     try {
       const now = new Date();
-      const firestoreData: any = {
-        ...noteData,
+      const firestoreData: FirestoreData = {
+        title: noteData.title,
+        content: noteData.content,
+        source: noteData.source,
+        isPinned: noteData.isPinned || false,
+        color: noteData.color || 'yellow',
+        labels: noteData.labels || [],
+        isArchived: false,
+        isDeleted: false,
+        reminderDate: noteData.reminderDate ? Timestamp.fromDate(noteData.reminderDate) : null,
         createdAt: Timestamp.fromDate(now),
         updatedAt: Timestamp.fromDate(now),
       };
 
-      // Convert reminderDate to Timestamp if it exists
-      if (noteData.reminderDate) {
-        firestoreData.reminderDate = Timestamp.fromDate(noteData.reminderDate);
-      }
-
-      // Ensure all boolean fields have default values
-      firestoreData.isPinned = noteData.isPinned || false;
-      firestoreData.isArchived = false;
-      firestoreData.isDeleted = false;
-      firestoreData.labels = noteData.labels || [];
 
       console.log('Creating note with data:', firestoreData);
 
@@ -129,7 +140,8 @@ class NoteService {
   async updateNote(noteId: string, updateData: UpdateNoteData): Promise<void> {
     try {
       const noteRef = doc(db, this.collectionName, noteId);
-      const firestoreData: any = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const firestoreData: Record<string, any> = {
         ...updateData,
         updatedAt: Timestamp.fromDate(new Date()),
       };
